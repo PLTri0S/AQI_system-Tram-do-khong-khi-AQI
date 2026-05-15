@@ -62,27 +62,24 @@ void updateDisplay(int temp, int humidity, uint16_t tvoc, uint16_t eco2, int PM2
   display.setCursor(0, 16);
   display.print("Humidity ");
   display.print(humidity);
-  display.print("%");
-
 
   display.setCursor(0, 32);
-  display.print("eCO2 ");
-  display.print(eco2);
-
-
-  display.setCursor(0, 48);
-  display.print("PM2.5 ");
-  display.print(PM25);
-
-  // ================= COLUMN 2 (RIGHT) =================
-  display.setCursor(64, 32);
   display.print("TVOC ");
   display.print(tvoc);
 
-  display.setCursor(64, 48);
+  display.setCursor(0, 48);
   display.print("PM1.0 ");
   display.print(PM10);
 
+
+  // ================= COLUMN 2 (RIGHT) =================
+  display.setCursor(64, 32);
+  display.print("eCO2 ");
+  display.print(eco2);
+
+  display.setCursor(64, 48);
+  display.print("PM2.5 ");
+  display.print(PM25);
 
   // Push all the drawing to the screen
   display.display();

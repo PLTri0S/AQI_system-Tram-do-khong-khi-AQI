@@ -9,9 +9,9 @@
 #define SDA_PIN 21 
 #define SCL_PIN 22
 
-const char* ssid = "Salle_2.4G";
-const char* password = "oulucity";
-const String GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzr11VxPWrx1fsiwfjuwQGbE_5VOIAOQ5t3iqU7-OykOt--c9NjsnLb-_mI07cwaVFmTA/exec";
+const char* ssid = "Name";
+const char* password = "Pass";
+const String GOOGLE_SCRIPT_URL = "";
 
 unsigned long lastUploadTime = 0;
 const unsigned long uploadInterval = 600000;
