@@ -29,15 +29,15 @@ void updatePMS() {
   if (readPMSdata(&Serial1)) {
     // If reading was successful, update the cache!
     last_pm25 = data.pm25_env;
-    last_pm10 = data.pm100_env;
+    last_pm10 = data.pm10_env;
   }
 }
 
-int get_PM25() {
+int get_PM2_5() {
   return last_pm25;
 }
 
-int get_PM10() {
+int get_PM1_0() {
   return last_pm10;
 }
 

@@ -8,9 +8,9 @@ void initPMS();
 
 void updatePMS(); // Add this line!
 
-int get_PM25();
+int get_PM2_5();
 
-int get_PM10();
+int get_PM1_0();
 
 struct pms5003data {
   uint16_t framelen;

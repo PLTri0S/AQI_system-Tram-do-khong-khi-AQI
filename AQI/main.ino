@@ -1,86 +1,110 @@
-//BME280.ino
 #include <Wire.h>
 #include "BME280.h"
 #include "SGP30.h"
-#include "Mics-5524.h"
-#include "HC8.h"
 #include "pms5003.h"
 #include "oled.h"
+#include "log.h"
+#include "sd_card.h"
 
-//#define SEALEVELPRESSURE_HPA (1013.25)
+#define SDA_PIN 21 
+#define SCL_PIN 22
 
-unsigned long delayTime = 500;
+const char* ssid = "Salle_2.4G";
+const char* password = "oulucity";
+const String GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzr11VxPWrx1fsiwfjuwQGbE_5VOIAOQ5t3iqU7-OykOt--c9NjsnLb-_mI07cwaVFmTA/exec";
+
+unsigned long lastUploadTime = 0;
+const unsigned long uploadInterval = 600000;
+
+unsigned long lastSensorReadTime = 0;
+const unsigned long sensorInterval = 1000;   // 1 second for SGP30/PMS polling
 
 void setup() {
   Serial.begin(115200);
 
+  Wire.begin(SDA_PIN, SCL_PIN);
+
   initBME(); 
   initSGP();
-  initMICS();
-  initHC8();
   initPMS();
   setupOLED();
+
+  setupWiFi(ssid, password);
+  syncNTP();
+  
   showBootAnimation();
-  delay(1000);
 
-  Serial.print("-- Hoàn tất quá trình khởi động --");
-  Serial.println();
+  Serial.println("Starting circular SD sensor logger...");
 
+  // SD card
+  Serial.println("Initializing SD card...");
+  if (!SD.begin(SD_CS_PIN)) {
+    Serial.println("SD card initialization failed!");
+  } else {
+    Serial.println("SD card OK");
+    loadLogIndex();
+    char fileName[20];
+    makeLogFileName(fileName, sizeof(fileName), currentLogIndex);
+    writeHeaderIfNeeded(fileName);
+    Serial.print("Current log file: ");
+    Serial.println(fileName);
+  }
+
+  Serial.println("Logger ready.\n-- Hoàn tất quá trình khởi động --");
+  delay(2000);
 }
 
 void loop() { 
-  // 1. Read BME280 once and save the values
-  int Temp = getBMETemp();
-  int Hum = getBMEHum();
-
-  // 2. Read Serial sensors
   updatePMS(); // Pulls data from the PMS buffer once
-  int CO2 = get_CO2(); // Pulls data from HC8 buffer
-  int CO = get_CO();   // Pulls MICS analog data
 
-  //BME280
-  Serial.print("Temperature ");
-  Serial.print(Temp);
-  Serial.print("°C");
+  unsigned long currentMillis = millis();
 
-  Serial.print("\t");
+  if (currentMillis - lastSensorReadTime >= sensorInterval) {
+    lastSensorReadTime = currentMillis;
 
-  Serial.print("Humidity ");
-  Serial.print(Hum);
-  Serial.print("%");
-  
-  Serial.println();
+    int Temp = getBMETemp();
+    int Hum = getBMEHum();
+    
+    // SGP30 Compensation & Read
+    applySGPCompensation(Temp, Hum);
+    readSGP();
 
-  //SGP30
-  applySGPCompensation(Temp, Hum);
-  if (readSGP()) {
-    Serial.print("TVOC "); Serial.print(get_TVOC()); Serial.print(" ppb"); 
+    // Print to Serial
+    Serial.printf("Temp: %d°C \t\t Hum: %d%%\n", Temp, Hum);
+    Serial.printf("TVOC: %d ppb \t\t eCO2: %d ppm\n", get_TVOC(), get_eCO2());
+    Serial.printf("PM1.0: %d Ug \t\t PM2.5: %d Ug\n\n", get_PM1_0(), get_PM2_5());
 
-    Serial.print("\t\t");
+    //Hiển thị trên màn OLED
+    updateDisplay(Temp, Hum, get_TVOC(), get_eCO2(), get_PM2_5(), get_PM1_0());
 
-    Serial.print("eCO2 "); Serial.print(get_eCO2()); Serial.print(" ppm"); 
-    Serial.println();
+    //SD CARD
+    if (currentMillis - lastLogTime >= LOG_INTERVAL) {
+      lastLogTime = currentMillis;
+
+      String currentTime = getFormattedTime();
+
+      Serial.println("========== LOG DATA ==========");
+      Serial.println(currentTime);
+
+      appendDataToSD(currentTime, Temp, Hum, get_TVOC(), get_eCO2(), get_PM1_0(), get_PM2_5());
+      
+      Serial.println("==============================");
+    }
   }
-  //MICS-5524
-  Serial.print("CO "); Serial.print(CO); Serial.print(" ppm");
 
-  Serial.print("\t\t");
+  if (currentMillis- lastUploadTime >= uploadInterval) {
+    lastUploadTime = currentMillis;
+    
+    String jsonData = "{";
+    jsonData += "\"PM25\":" + String(get_PM2_5()) + ","; 
+    jsonData += "\"PM10\":" + String(get_PM1_0()) + ",";
+    jsonData += "\"Temp\":" + String(getBMETemp()) + ",";
+    jsonData += "\"Hum\":"  + String(getBMEHum()) + ",";
+    jsonData += "\"TVOC\":" + String(get_TVOC()) + ",";
+    jsonData += "\"eCO2\":" + String(get_eCO2());
+    jsonData += "}";
 
-  //HC8
-  Serial.print("CO2 "); Serial.print(CO2); Serial.print(" ppm");
-  Serial.println();
-
-  //PMS
-  Serial.print("PM2.5 "); Serial.print(get_PM25()); Serial.print(" Ug");
-  Serial.print("\t\t");
-  Serial.print("PM10 "); Serial.print(get_PM10()); Serial.print(" Ug");
-
-  Serial.println();
-  Serial.println();
-
-  //Hiển thị trên màn OLED
-  updateDisplay(Temp, Hum, get_TVOC(), get_eCO2(), CO2, CO, get_PM25(), get_PM10());
-
-  delay(delayTime);
-
+    // Call the function from your new .cpp file
+    sendToGoogle(GOOGLE_SCRIPT_URL, jsonData);
+    }
 }

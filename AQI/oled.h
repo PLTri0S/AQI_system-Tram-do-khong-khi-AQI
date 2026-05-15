@@ -12,10 +12,12 @@
 // Initialize the OLED display
 void setupOLED();
 
+void displayMessage(String message);
+
 // Play the startup animation
 void showBootAnimation();
 
 // Update the 2-column data dashboard
-void updateDisplay(int temp, int humidity, uint16_t tvoc, uint16_t eco2, int co2, int co, int PM25, int PM10);
+void updateDisplay(int temp, int humidity, uint16_t tvoc, uint16_t eco2, int PM25, int PM10);
 
 #endif
