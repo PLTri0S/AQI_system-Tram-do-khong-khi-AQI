@@ -1,39 +1,43 @@
 #include "log.h"
 #include "oled.h"
 #include <WiFi.h>
+#include <WiFiMulti.h>
 #include <HTTPClient.h>
 
-void setupWiFi(const char* ssid, const char* password) {
-  Serial.print("Connecting to Wi-Fi: ");
-  Serial.println(ssid);
+WiFiMulti wifiMulti;
 
-  displayMessage("Connecting to Wi-Fi\n\n" + String(ssid));
-  delay(2000);
-  
-  WiFi.begin(ssid, password);
-  int attempts = 0;
-  int max = 30;
-  
-  while (WiFi.status() != WL_CONNECTED && attempts < max) {
-    delay(500);
-    Serial.print(".");
-    attempts++;
-  }
-  
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("\nWiFi Connected successfully!");
-    Serial.print("IP Address: ");
-    Serial.println(WiFi.localIP());
+//List multiple networks
+const char* ssid_1 = "";
+const char* ssid_2 = "";
+const char* ssid_3 = "";
+const char* password_1 = "";
+const char* password_2 = "";
+const char* password_3 = "";
 
-    displayMessage("WiFi Connected\nsuccessfully!\n\nIP Address\n" + WiFi.localIP().toString());
-    delay(5000);
+void setupWiFi() {
+  // 1. Add your networks to the Multi list
+  wifiMulti.addAP(ssid_1, password_1);
+  wifiMulti.addAP(ssid_2, password_2);
+  wifiMulti.addAP(ssid_3, password_3); 
 
+  Serial.println("Connecting to Wi-Fi...");
+  displayMessage("Scanning for\nknown networks...");
+
+  // 2. wifiMulti.run() connects to the available network
+  if(wifiMulti.run() == WL_CONNECTED) {
+      Serial.println("\nWiFi Connected successfully!");
+      Serial.print("Connected to: ");
+      Serial.println(WiFi.SSID()); // Prints which one it picked
+      Serial.println(WiFi.localIP());
+
+      displayMessage("Connecting to\n" + WiFi.SSID());
+      delay(3000);
+      displayMessage("WiFi Connected\nsuccessfully!\n\nIP Address\n" + WiFi.localIP().toString());
+      delay(3000);
   } else {
-    Serial.println("\nWiFi Connection Failed!");
-    displayMessage("WiFi Connection Failed!");
-    delay(2000);
-    // The program will now continue to the loop() 
-    // where it can still read sensors, even if it can't upload.
+      Serial.println("\nWiFi Connection Failed!");
+      displayMessage("WiFi\nConnections Failed!");
+      delay(2000);
   }
 }
 
