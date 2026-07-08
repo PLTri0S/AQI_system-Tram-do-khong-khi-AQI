@@ -7,7 +7,7 @@
 #include <SPI.h>
 
 #define SD_CS_PIN 5
-#define LOG_INTERVAL  600000        // ms between log writes
+#define LOG_INTERVAL  300000        // ms between log writes
 #define MAX_LOG_FILES 100
 #define MAX_FILE_SIZE 1048576UL     // 1 MB
 #define INDEX_FILE    "/index.txt"
@@ -17,7 +17,7 @@ extern int           currentLogIndex;
 
 // Time Functions
 void syncNTP();
-String getFormattedTime();
+unsigned long getTime();
 
 // SD / file logging
 void          makeLogFileName(char *buffer, size_t len, int index);
@@ -27,7 +27,7 @@ void          writeHeaderIfNeeded(const char *fileName);
 unsigned long getFileSize(const char *fileName);
 void          rotateLogFile();
 void          appendDataToSD(
-                String timestamp,
+                unsigned long timestamp,
                 int temperature,
                 int humidity,
                 uint16_t tvoc,
