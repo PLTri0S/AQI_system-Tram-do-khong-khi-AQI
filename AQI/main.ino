@@ -10,8 +10,8 @@
 #define SDA_PIN 21 
 #define SCL_PIN 22
 
-const String GOOGLE_SCRIPT_URL = "";
-
+const String GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbySShNqriRLIXWc6RmnJRPSMAI9FBPdhbkB8s84bgSo-qkoCDZjS2LLt2fX96Cv9hhlag/exec";
+                                  
 unsigned long lastUploadTime = 0;
 const unsigned long uploadInterval = 300000;
 
@@ -23,7 +23,7 @@ void setup() {
 
   Wire.begin(SDA_PIN, SCL_PIN);
 
-  initBME(); 
+  //initBME(); 
   initSGP();
   initPMS();
   initSHT();
@@ -62,26 +62,23 @@ void loop() {
   if (currentMillis - lastSensorReadTime >= sensorInterval) {
     lastSensorReadTime = currentMillis;
 
-    float Temp_bme = getBMETemp();
-    float Hum_bme = getBMEHum();
+    // float Temp_bme = getBMETemp();
+    // float Hum_bme = getBMEHum();
 
     float Temp_sht = getSHTTemp();
     float Hum_sht = getSHTHum();
-
-    float Temp_avg = (Temp_bme + Temp_sht) / 2;
-    float Hum_avg = (Hum_bme + Hum_sht) / 2;
   
     // SGP30 Compensation & Read
-    applySGPCompensation(Temp_avg, Hum_avg);
+    applySGPCompensation(Temp_sht, Hum_sht);
     readSGP();
 
     // Print to Serial
-    Serial.printf("Temp: %.2f°C \t\t Hum: %.2f%%\n", Temp_avg, Hum_avg);
+    Serial.printf("Temp: %.2f°C \t\t Hum: %.2f%%\n", Temp_sht, Hum_sht);
     Serial.printf("TVOC: %d ppb \t\t eCO2: %d ppm\n", get_TVOC(), get_eCO2());
     Serial.printf("PM1.0: %d Ug \t\t PM2.5: %d Ug\n\n", get_PM1_0(), get_PM2_5());
 
     //Hiển thị trên màn OLED
-    updateDisplay(Temp_avg, Hum_avg, get_TVOC(), get_eCO2(), get_PM2_5(), get_PM1_0());
+    updateDisplay(Temp_sht, Hum_sht, get_TVOC(), get_eCO2(), get_PM2_5(), get_PM1_0());
 
     //SD CARD
     if (currentMillis - lastLogTime >= LOG_INTERVAL) {
@@ -92,7 +89,7 @@ void loop() {
       Serial.println("========== LOG DATA ==========");
       Serial.println(currentTime);
 
-      appendDataToSD(currentTime, Temp_avg, Hum_avg, get_TVOC(), get_eCO2(), get_PM1_0(), get_PM2_5());
+      appendDataToSD(currentTime, Temp_sht, Hum_sht, get_TVOC(), get_eCO2(), get_PM1_0(), get_PM2_5());
       
       Serial.println("==============================");
     }
@@ -104,8 +101,8 @@ void loop() {
     String jsonData = "{";
     jsonData += "\"PM25\":" + String(get_PM2_5()) + ","; 
     jsonData += "\"PM10\":" + String(get_PM1_0()) + ",";
-    jsonData += "\"Temp\":" + String(int((getSHTTemp() + getBMETemp()) / 2)) + ",";
-    jsonData += "\"Hum\":"  + String(int((getSHTHum() + getBMEHum()) / 2)) + ",";
+    jsonData += "\"Temp\":" + String((getSHTTemp()) + ",";
+    jsonData += "\"Hum\":"  + String((getSHTHum()) + ",";
     jsonData += "\"TVOC\":" + String(get_TVOC()) + ",";
     jsonData += "\"eCO2\":" + String(get_eCO2());
     jsonData += "}";
